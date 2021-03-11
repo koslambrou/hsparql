@@ -3,7 +3,7 @@
 
 module DBPedia where
 
-import Data.RDF hiding (triple)
+import Data.RDF hiding (Query, triple)
 import Data.Text
 import Database.HSparql.Connection
 import Database.HSparql.QueryGenerator

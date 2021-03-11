@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE PostfixOperators  #-}
 
 module Database.HSparql.QueryGeneratorTest ( testSuite ) where
 
@@ -314,6 +315,244 @@ SELECT ((COUNT(?x0)) AS ?x2) WHERE {
         countVar <- var
         select [count s `as` countVar]
     )
+
+  , ( [s|
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 ((foaf:knows/foaf:knows)/foaf:name) ?x1 .
+}
+|]
+    , createQuery $ do
+        foaf     <- prefix "foaf" (iriRef "http://xmlns.com/foaf/0.1/")
+
+        s <- var
+        o <- var
+
+        let foafKnows = foaf .:. "knows"
+        let foafName = foaf .:. "name"
+        triple_ s (foafKnows .//. foafKnows .//. foafName) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (^foaf:mbox) ?x1 .
+}
+|]
+    , createQuery $ do
+        foaf     <- prefix "foaf" (iriRef "http://xmlns.com/foaf/0.1/")
+
+        s <- var
+        o <- var
+
+        let foafMbox = foaf .:. "mbox"
+        triple_ s (inv foafMbox) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (foaf:knows/(^foaf:knows)) ?x1 .
+}
+|]
+    , createQuery $ do
+        foaf     <- prefix "foaf" (iriRef "http://xmlns.com/foaf/0.1/")
+
+        s <- var
+        o <- var
+
+        let foafKnows = foaf .:. "knows"
+        triple_ s (foafKnows .//. inv foafKnows) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (foaf:knows/(^foaf:knows)) ?x1 .
+}
+|]
+    , createQuery $ do
+        foaf     <- prefix "foaf" (iriRef "http://xmlns.com/foaf/0.1/")
+
+        s <- var
+        o <- var
+
+        let foafKnows = foaf .:. "knows"
+        triple_ s (foafKnows .//. inv foafKnows) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 ((foaf:knows+)/foaf:name) ?x1 .
+}
+|]
+    , createQuery $ do
+        foaf     <- prefix "foaf" (iriRef "http://xmlns.com/foaf/0.1/")
+
+        s <- var
+        o <- var
+
+        let foafKnows = foaf .:. "knows"
+        let foafName = foaf .:. "name"
+        triple_ s ((foafKnows +.) .//. foafName) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX ex: <http://example.com/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 ((ex:motherOf|ex:fatherOf)+) ?x1 .
+}
+|]
+    , createQuery $ do
+        ex     <- prefix "ex" (iriRef "http://example.com/")
+
+        s <- var
+        o <- var
+
+        let exMotherOf = ex .:. "motherOf"
+        let exFatherOf = ex .:. "fatherOf"
+        triple_ s ((exMotherOf .|. exFatherOf) +.) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX ex: <http://example.com/>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 ((ex:motherOf|ex:fatherOf)+) ?x1 .
+}
+|]
+    , createQuery $ do
+        ex     <- prefix "ex" (iriRef "http://example.com/")
+
+        s <- var
+        o <- var
+
+        let exMotherOf = ex .:. "motherOf"
+        let exFatherOf = ex .:. "fatherOf"
+        triple_ s ((exMotherOf .|. exFatherOf) +.) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (rdf:type/(rdfs:subClassOf*)) ?x1 .
+}
+|]
+    , createQuery $ do
+        rdf  <- prefix "rdf" (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+        rdfs <- prefix "rdfs" (iriRef "http://www.w3.org/2000/01/rdf-schema#")
+
+        s <- var
+        o <- var
+
+        let rdfType = rdf .:. "type"
+        let rdfsSubClassOf = rdfs .:. "subClassOf"
+        triple_ s (rdfType .//. (rdfsSubClassOf *.)) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (a/(rdfs:subClassOf*)) ?x1 .
+}
+|]
+    , createQuery $ do
+        rdfs <- prefix "rdfs" (iriRef "http://www.w3.org/2000/01/rdf-schema#")
+
+        s <- var
+        o <- var
+
+        let rdfsSubClassOf = rdfs .:. "subClassOf"
+        triple_ s (a .//. (rdfsSubClassOf *.)) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 (a/(rdfs:subClassOf?)) ?x1 .
+}
+|]
+    , createQuery $ do
+        rdfs <- prefix "rdfs" (iriRef "http://www.w3.org/2000/01/rdf-schema#")
+
+        s <- var
+        o <- var
+
+        let rdfsSubClassOf = rdfs .:. "subClassOf"
+        triple_ s (a .//. (rdfsSubClassOf ?.)) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 !(rdf:type|rdfs:subClassOf|a) ?x1 .
+}
+|]
+    , createQuery $ do
+        rdf  <- prefix "rdf" (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+        rdfs <- prefix "rdfs" (iriRef "http://www.w3.org/2000/01/rdf-schema#")
+
+        s <- var
+        o <- var
+
+        let rdfType = rdf .:. "type"
+        let rdfsSubClassOf = rdfs .:. "subClassOf"
+        triple_ s (neg $ rdfType ..|.. rdfsSubClassOf ..|.. a) o
+
+        selectVars [s, o]
+    )
+
+  , ( [s|
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?x0 ?x1 WHERE {
+  ?x0 !(rdf:type|^rdf:type) ?x1 .
+}
+|]
+    , createQuery $ do
+        rdf  <- prefix "rdf" (iriRef "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+
+        s <- var
+        o <- var
+
+        let rdfType = rdf .:. "type"
+        triple_ s (neg $ rdfType ..|.. inv' rdfType) o
+
+        selectVars [s, o]
+    )
   ]
 
 testSuite :: [Test.Framework.Test]
@@ -322,3 +561,4 @@ testSuite = [
       \(expected, actual) -> testCase (T.unpack expected) $ do
         assertEqual "" (normalizeWhitespace expected) (normalizeWhitespace actual)
   ]
+
